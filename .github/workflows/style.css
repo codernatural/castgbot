@@ -1,24 +1,25 @@
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Arial', sans-serif;
     margin: 0;
     padding: 0;
-    background-color: #1e1e2e;
-    color: white;
+    background-color: #0f0f1a;
+    color: #fff;
 }
 
-.app-container {
+.app {
     max-width: 100%;
     padding: 15px;
 }
 
-.app-header {
+header {
     margin-bottom: 20px;
 }
 
-.user-profile {
+.user-info {
     display: flex;
     align-items: center;
     gap: 15px;
+    margin-bottom: 15px;
 }
 
 #user-avatar {
@@ -28,44 +29,118 @@ body {
     object-fit: cover;
 }
 
-.user-info h2 {
-    margin: 0;
-    font-size: 18px;
+.stats {
+    display: flex;
+    justify-content: space-between;
+    background: #1e1e2e;
+    padding: 10px;
+    border-radius: 10px;
 }
 
-.user-info p {
-    margin: 5px 0 0;
-    color: #a1a1a1;
-}
-
-.cases-grid, .shop-items {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 15px;
-    margin-top: 15px;
-}
-
-.case-item, .shop-item {
-    background: #2d2d3d;
-    border-radius: 12px;
-    padding: 15px;
+.stat {
     text-align: center;
+}
+
+.stat span:first-child {
+    font-size: 12px;
+    color: #a0a0a0;
+}
+
+.mining-section {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.crypto-display {
+    font-size: 36px;
+    font-weight: bold;
+    margin: 20px 0;
+    color: #f0b90b;
+}
+
+.mine-btn {
+    background: linear-gradient(135deg, #f0b90b, #f8d33a);
+    border: none;
+    padding: 15px 30px;
+    font-size: 18px;
+    border-radius: 50px;
     cursor: pointer;
+    font-weight: bold;
     transition: transform 0.2s;
 }
 
-.case-item:hover, .shop-item:hover {
-    transform: scale(1.03);
+.mine-btn:active {
+    transform: scale(0.95);
 }
 
-.case-item h3, .shop-item h3 {
-    margin: 0 0 5px;
+.shop-section {
+    margin-bottom: 20px;
 }
 
-.case-item p, .shop-item p {
-    margin: 5px 0;
-    color: #a1a1a1;
-    font-size: 14px;
+.shop-items {
+    display: grid;
+    gap: 10px;
+}
+
+.shop-item {
+    background: #1e1e2e;
+    padding: 15px;
+    border-radius: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.shop-item-info {
+    flex-grow: 1;
+}
+
+.shop-item-name {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.shop-item-desc {
+    font-size: 12px;
+    color: #a0a0a0;
+}
+
+.shop-item-price {
+    font-weight: bold;
+    color: #f0b90b;
+}
+
+.buy-btn {
+    background: #2a2a3a;
+    border: none;
+    color: white;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.bonus-section {
+    margin-top: 20px;
+}
+
+.bonus-btn {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 10px;
+    border: none;
+    border-radius: 10px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+#daily-bonus {
+    background: linear-gradient(135deg, #6e45e2, #88d3ce);
+    color: white;
+}
+
+#referral-btn {
+    background: linear-gradient(135deg, #4b6cb7, #182848);
+    color: white;
 }
 
 .modal {
@@ -80,10 +155,10 @@ body {
 }
 
 .modal-content {
-    background-color: #2d2d3d;
-    margin: 15% auto;
+    background: #1e1e2e;
+    margin: 20% auto;
     padding: 20px;
-    border-radius: 12px;
+    border-radius: 10px;
     width: 80%;
     max-width: 400px;
     position: relative;
@@ -97,25 +172,12 @@ body {
     cursor: pointer;
 }
 
-.case-animation {
-    display: flex;
-    justify-content: space-around;
-    margin: 20px 0;
-}
-
-.slot-item {
-    font-size: 40px;
-    animation: spin 0.3s infinite;
-}
-
-@keyframes spin {
-    0% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
-    100% { transform: translateY(0); }
-}
-
-.case-result {
-    text-align: center;
-    font-size: 18px;
-    margin-top: 20px;
+#referral-link {
+    width: 100%;
+    padding: 8px;
+    margin: 10px 0;
+    background: #2a2a3a;
+    border: none;
+    color: white;
+    border-radius: 5px;
 }
