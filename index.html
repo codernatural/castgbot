@@ -3,48 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Casino Mini App</title>
+    <title>Crypto Miner</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
-    <div class="app-container">
-        <header class="app-header">
-            <div class="user-profile">
-                <img id="user-avatar" src="" alt="Аватар">
-                <div class="user-info">
+    <div class="app">
+        <header>
+            <div class="user-info">
+                <img id="user-avatar" src="" alt="Avatar">
+                <div>
                     <h2 id="user-name"></h2>
-                    <p id="user-balance">Баланс: 0 монет</p>
+                    <p id="user-balance">0 CRYPTO</p>
+                </div>
+            </div>
+            <div class="stats">
+                <div class="stat">
+                    <span>⛏️ Майнеры</span>
+                    <span id="miners-count">0</span>
+                </div>
+                <div class="stat">
+                    <span>⚡ Мощность</span>
+                    <span id="power">0/сек</span>
                 </div>
             </div>
         </header>
 
-        <main class="app-main">
-            <section class="cases-section">
-                <h2>📦 Ваши кейсы</h2>
-                <div class="cases-grid" id="cases-container">
-                    <!-- Кейсы будут добавляться через JS -->
-                </div>
+        <main>
+            <section class="mining-section">
+                <div class="crypto-display" id="crypto-display">0</div>
+                <button class="mine-btn" id="mine-btn">Майнить</button>
             </section>
 
             <section class="shop-section">
-                <h2>🛒 Магазин кейсов</h2>
-                <div class="shop-items" id="shop-container">
-                    <!-- Товары магазина будут добавляться через JS -->
+                <h3>🛒 Улучшения</h3>
+                <div class="shop-items" id="shop-items">
+                    <!-- Товары будут добавлены через JS -->
                 </div>
             </section>
-        </main>
 
-        <div class="modal" id="case-modal">
-            <div class="modal-content">
-                <span class="close">&times;</span>
-                <div class="case-animation" id="case-animation">
-                    <div class="slot-item">🎰</div>
-                    <div class="slot-item">🎲</div>
-                    <div class="slot-item">🎯</div>
-                </div>
-                <div class="case-result" id="case-result"></div>
-            </div>
+            <section class="bonus-section">
+                <h3>🎁 Бонусы</h3>
+                <button class="bonus-btn" id="daily-bonus">Ежедневный бонус</button>
+                <button class="bonus-btn" id="referral-btn">Реферальная программа</button>
+            </section>
+        </main>
+    </div>
+
+    <div class="modal" id="referral-modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>👥 Реферальная программа</h3>
+            <p>Приглашайте друзей и получайте 10% от их дохода!</p>
+            <p>Ваша реферальная ссылка:</p>
+            <input type="text" id="referral-link" readonly>
+            <p>Приглашено: <span id="referrals-count">0</span> друзей</p>
+            <p>Заработано: <span id="referrals-earnings">0</span> CRYPTO</p>
         </div>
     </div>
 
