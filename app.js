@@ -2,147 +2,196 @@
 const tg = window.Telegram.WebApp;
 tg.expand();
 
-// Данные пользователя
-let userData = {
-    id: tg.initDataUnsafe.user?.id || 0,
-    name: tg.initDataUnsafe.user?.first_name || "Гость",
-    avatar: tg.initDataUnsafe.user?.photo_url || "",
-    balance: 1000,
-    cases: {
-        common: 3,
-        rare: 1,
-        epic: 0,
-        legendary: 0
-    }
+// Состояние игры
+let gameState = {
+    crypto: 0,
+    miners: 0,
+    power: 0,
+    upgrades: [
+        { id: 1, name: "Базовый майнер", price: 10, power: 0.1, owned: 0 },
+        { id: 2, name: "Процессор", price: 50, power: 0.5, owned: 0 },
+        { id: 3, name: "Видеокарта", price: 200, power: 2, owned: 0 },
+        { id: 4, name: "Майнинг-ферма", price: 1000, power: 10, owned: 0 },
+        { id: 5, name: "Крипто-ферма", price: 5000, power: 50, owned: 0 }
+    ],
+    lastDailyBonus: null,
+    referrals: [],
+    referralEarnings: 0,
+    lastUpdate: Date.now()
 };
 
-// Типы кейсов
-const caseTypes = {
-    common: {
-        name: "Обычный кейс",
-        price: 50,
-        emoji: "🎁",
-        rewards: [
-            { amount: 10, chance: 40 },
-            { amount: 20, chance: 30 },
-            { amount: 50, chance: 20 },
-            { amount: 100, chance: 10 }
-        ]
-    },
-    rare: {
-        name: "Редкий кейс",
-        price: 100,
-        emoji: "🔮",
-        rewards: [
-            { amount: 50, chance: 30 },
-            { amount: 100, chance: 25 },
-            { amount: 200, chance: 20 },
-            { amount: 500, chance: 15 },
-            { amount: 1000, chance: 10 }
-        ]
-    },
-    epic: {
-        name: "Эпический кейс",
-        price: 200,
-        emoji: "💎",
-        rewards: [
-            { amount: 100, chance: 25 },
-            { amount: 200, chance: 20 },
-            { amount: 500, chance: 20 },
-            { amount: 1000, chance: 15 },
-            { amount: 2000, chance: 10 },
-            { amount: 5000, chance: 10 }
-        ]
-    },
-    legendary: {
-        name: "Легендарный кейс",
-        price: 500,
-        emoji: "🏆",
-        rewards: [
-            { amount: 500, chance: 20 },
-            { amount: 1000, chance: 20 },
-            { amount: 2000, chance: 15 },
-            { amount: 5000, chance: 15 },
-            { amount: 10000, chance: 15 },
-            { amount: 20000, chance: 10 },
-            { amount: 50000, chance: 5 }
-        ]
+// Загрузка сохранения
+function loadGame() {
+    const saved = localStorage.getItem('cryptoMinerSave');
+    if (saved) {
+        const parsed = JSON.parse(saved);
+        // Проверяем, когда было последнее обновление
+        const offlineTime = (Date.now() - parsed.lastUpdate) / 1000; // в секундах
+        if (offlineTime > 10) { // Если прошло больше 10 секунд
+            // Начисляем оффлайн-доход
+            const offlineEarnings = parsed.power * offlineTime * 0.5; // 50% от обычного дохода
+            parsed.crypto += offlineEarnings;
+        }
+        Object.assign(gameState, parsed);
     }
-};
+}
 
-// Инициализация приложения
-document.addEventListener('DOMContentLoaded', () => {
-    // Заполняем профиль пользователя
-    document.getElementById('user-name').textContent = userData.name;
-    document.getElementById('user-balance').textContent = `Баланс: ${userData.balance} монет`;
-    
-    if (userData.avatar) {
-        document.getElementById('user-avatar').src = userData.avatar;
-    }
+// Сохранение игры
+function saveGame() {
+    gameState.lastUpdate = Date.now();
+    localStorage.setItem('cryptoMinerSave', JSON.stringify(gameState));
+}
 
-    // Заполняем кейсы пользователя
-    renderUserCases();
+// Обновление интерфейса
+function updateUI() {
+    document.getElementById('crypto-display').textContent = gameState.crypto.toFixed(2);
+    document.getElementById('miners-count').textContent = gameState.miners;
+    document.getElementById('power').textContent = `${gameState.power.toFixed(1)}/сек`;
+    document.getElementById('user-balance').textContent = `${gameState.crypto.toFixed(2)} CRYPTO`;
     
-    // Заполняем магазин
-    renderShop();
-    
-    // Настройка модального окна
-    setupModal();
-});
-
-// Отображение кейсов пользователя
-function renderUserCases() {
-    const container = document.getElementById('cases-container');
-    container.innerHTML = '';
-    
-    for (const [type, count] of Object.entries(userData.cases)) {
-        if (count > 0) {
-            const caseInfo = caseTypes[type];
-            const caseElement = document.createElement('div');
-            caseElement.className = 'case-item';
-            caseElement.innerHTML = `
-                <h3>${caseInfo.emoji} ${caseInfo.name}</h3>
-                <p>Количество: ${count}</p>
-            `;
-            caseElement.addEventListener('click', () => openCase(type));
-            container.appendChild(caseElement);
+    // Обновляем аватар и имя пользователя
+    if (tg.initDataUnsafe.user) {
+        const user = tg.initDataUnsafe.user;
+        document.getElementById('user-name').textContent = user.first_name || 'Игрок';
+        if (user.photo_url) {
+            document.getElementById('user-avatar').src = user.photo_url;
         }
     }
     
-    if (container.innerHTML === '') {
-        container.innerHTML = '<p>У вас нет кейсов. Купите их в магазине!</p>';
-    }
+    // Обновляем магазин
+    updateShop();
 }
 
-// Отображение магазина
-function renderShop() {
-    const container = document.getElementById('shop-container');
-    container.innerHTML = '';
+// Обновление магазина
+function updateShop() {
+    const shopContainer = document.getElementById('shop-items');
+    shopContainer.innerHTML = '';
     
-    for (const [type, caseInfo] of Object.entries(caseTypes)) {
-        const shopItem = document.createElement('div');
-        shopItem.className = 'shop-item';
-        shopItem.innerHTML = `
-            <h3>${caseInfo.emoji} ${caseInfo.name}</h3>
-            <p>Цена: ${caseInfo.price} монет</p>
-            <p>Награды: ${caseInfo.rewards.map(r => r.amount).join(', ')}</p>
-            <button class="buy-button">Купить</button>
+    gameState.upgrades.forEach(upgrade => {
+        const item = document.createElement('div');
+        item.className = 'shop-item';
+        item.innerHTML = `
+            <div class="shop-item-info">
+                <div class="shop-item-name">${upgrade.name}</div>
+                <div class="shop-item-desc">+${upgrade.power.toFixed(1)} мощности</div>
+            </div>
+            <div class="shop-item-price">${upgrade.price.toFixed(0)} CRYPTO</div>
+            <button class="buy-btn" data-id="${upgrade.id}">Купить (${upgrade.owned})</button>
         `;
-        
-        shopItem.querySelector('.buy-button').addEventListener('click', (e) => {
-            e.stopPropagation();
-            buyCase(type);
+        shopContainer.appendChild(item);
+    });
+    
+    // Добавляем обработчики кнопок покупки
+    document.querySelectorAll('.buy-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = parseInt(this.getAttribute('data-id'));
+            buyUpgrade(id);
         });
+    });
+}
+
+// Покупка улучшения
+function buyUpgrade(id) {
+    const upgrade = gameState.upgrades.find(u => u.id === id);
+    if (!upgrade) return;
+    
+    if (gameState.crypto >= upgrade.price) {
+        gameState.crypto -= upgrade.price;
+        upgrade.owned += 1;
+        gameState.miners += 1;
+        gameState.power += upgrade.power;
         
-        container.appendChild(shopItem);
+        // Увеличиваем цену для следующей покупки
+        upgrade.price = Math.floor(upgrade.price * 1.15);
+        
+        updateUI();
+        saveGame();
+        
+        // Визуальная обратная связь
+        const btn = document.querySelector(`.buy-btn[data-id="${id}"]`);
+        btn.textContent = `Купить (${upgrade.owned})`;
+        btn.style.transform = 'scale(1.1)';
+        setTimeout(() => {
+            btn.style.transform = 'scale(1)';
+        }, 200);
+    } else {
+        alert('Недостаточно CRYPTO!');
     }
 }
 
-// Настройка модального окна
-function setupModal() {
-    const modal = document.getElementById('case-modal');
+// Майнинг по клику
+function setupMining() {
+    const mineBtn = document.getElementById('mine-btn');
+    mineBtn.addEventListener('click', () => {
+        gameState.crypto += 1 + (gameState.power * 0.1); // Базовый доход + 10% от мощности
+        updateUI();
+        saveGame();
+        
+        // Анимация кнопки
+        mineBtn.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+            mineBtn.style.transform = 'scale(1)';
+        }, 100);
+    });
+}
+
+// Ежедневный бонус
+function setupDailyBonus() {
+    const dailyBtn = document.getElementById('daily-bonus');
+    dailyBtn.addEventListener('click', () => {
+        const now = new Date();
+        const lastClaim = gameState.lastDailyBonus ? new Date(gameState.lastDailyBonus) : null;
+        
+        if (!lastClaim || now.getDate() !== lastClaim.getDate()) {
+            const bonus = 100 + (gameState.power * 5); // Базовый бонус + 5x мощность
+            gameState.crypto += bonus;
+            gameState.lastDailyBonus = now.toISOString();
+            
+            updateUI();
+            saveGame();
+            
+            alert(`🎉 Вы получили ежедневный бонус: ${bonus.toFixed(2)} CRYPTO!`);
+        } else {
+            const nextDay = new Date(lastClaim);
+            nextDay.setDate(nextDay.getDate() + 1);
+            nextDay.setHours(0, 0, 0, 0);
+            
+            const hoursLeft = Math.floor((nextDay - now) / (1000 * 60 * 60));
+            alert(`⏳ Вы уже получали бонус сегодня. Следующий бонус через ${hoursLeft} часов.`);
+        }
+    });
+}
+
+// Реферальная система
+function setupReferralSystem() {
+    const referralBtn = document.getElementById('referral-btn');
+    const modal = document.getElementById('referral-modal');
     const closeBtn = document.querySelector('.close');
     
+    // Проверяем реферальный параметр в URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const refParam = urlParams.get('ref');
+    
+    if (refParam && refParam !== tg.initDataUnsafe.user?.id?.toString()) {
+        // Если есть реферальная ссылка и это не сам пользователь
+        if (!gameState.referrals.includes(refParam)) {
+            gameState.referrals.push(refParam);
+            gameState.crypto += 50; // Бонус за регистрацию по реферальной ссылке
+            saveGame();
+            updateUI();
+        }
+    }
+    
+    // Показываем модальное окно
+    referralBtn.addEventListener('click', () => {
+        document.getElementById('referral-link').value = 
+            `https://t.me/${tg.initDataUnsafe.bot?.username}?startapp=ref${tg.initDataUnsafe.user?.id}`;
+        document.getElementById('referrals-count').textContent = gameState.referrals.length;
+        document.getElementById('referrals-earnings').textContent = gameState.referralEarnings.toFixed(2);
+        modal.style.display = 'block';
+    });
+    
+    // Закрываем модальное окно
     closeBtn.addEventListener('click', () => {
         modal.style.display = 'none';
     });
@@ -154,91 +203,32 @@ function setupModal() {
     });
 }
 
-// Покупка кейса
-function buyCase(type) {
-    const caseInfo = caseTypes[type];
-    
-    if (userData.balance >= caseInfo.price) {
-        userData.balance -= caseInfo.price;
-        userData.cases[type] += 1;
-        
+// Пассивный доход
+function setupPassiveIncome() {
+    setInterval(() => {
+        gameState.crypto += gameState.power / 10; // 10 раз в секунду для плавности
         updateUI();
-        alert(`Вы успешно купили ${caseInfo.name}!`);
-    } else {
-        alert('Недостаточно средств!');
-    }
-}
-
-// Открытие кейса
-function openCase(type) {
-    if (userData.cases[type] <= 0) return;
-    
-    const modal = document.getElementById('case-modal');
-    const animation = document.getElementById('case-animation');
-    const result = document.getElementById('case-result');
-    
-    // Показываем модальное окно
-    modal.style.display = 'block';
-    result.innerHTML = '';
-    
-    // Уменьшаем количество кейсов
-    userData.cases[type] -= 1;
-    
-    // Анимация
-    const slots = animation.querySelectorAll('.slot-item');
-    let spins = 0;
-    const spinInterval = setInterval(() => {
-        slots.forEach(slot => {
-            const symbols = ['🎰', '🎲', '🎯', '🎳', '🎮', '💰', '💎'];
-            slot.textContent = symbols[Math.floor(Math.random() * symbols.length)];
-        });
-        
-        spins++;
-        if (spins > 10) {
-            clearInterval(spinInterval);
-            showCaseResult(type);
-        }
+        saveGame();
     }, 100);
 }
 
-// Показ результата открытия кейса
-function showCaseResult(type) {
-    const caseInfo = caseTypes[type];
-    const result = document.getElementById('case-result');
-    
-    // Вычисляем выигрыш
-    const totalChance = caseInfo.rewards.reduce((sum, reward) => sum + reward.chance, 0);
-    let random = Math.random() * totalChance;
-    let winAmount = 0;
-    
-    for (const reward of caseInfo.rewards) {
-        if (random <= reward.chance) {
-            winAmount = reward.amount;
-            break;
-        }
-        random -= reward.chance;
-    }
-    
-    // Обновляем баланс
-    userData.balance += winAmount;
-    
-    // Показываем результат
-    result.innerHTML = `
-        <h3>🎉 Поздравляем!</h3>
-        <p>Вы выиграли <strong>${winAmount}</strong> монет!</p>
-        <p>Ваш баланс: <strong>${userData.balance}</strong> монет</p>
-    `;
-    
+// Инициализация игры
+function initGame() {
+    loadGame();
     updateUI();
+    setupMining();
+    setupDailyBonus();
+    setupReferralSystem();
+    setupPassiveIncome();
+    
+    // Показываем кнопку "Поделиться" в Telegram
+    if (tg.platform !== 'unknown') {
+        tg.MainButton.setText('Пригласить друзей').show();
+        tg.MainButton.onClick(() => {
+            tg.showAlert('Поделитесь ссылкой и получайте 10% от дохода друзей!');
+        });
+    }
 }
 
-// Обновление интерфейса
-function updateUI() {
-    document.getElementById('user-balance').textContent = `Баланс: ${userData.balance} монет`;
-    renderUserCases();
-}
-
-// Обработка кнопки "Назад" в Telegram
-tg.BackButton.onClick(() => {
-    tg.close();
-});
+// Запускаем игру при загрузке страницы
+document.addEventListener('DOMContentLoaded', initGame);
