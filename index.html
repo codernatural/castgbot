@@ -41,7 +41,45 @@
                     <!-- Товары будут добавлены через JS -->
                 </div>
             </section>
-
+            <!-- Добавьте этот раздел после shop-section -->
+            <section class="boost-section">
+                <h3>💎 Платные бусты</h3>
+                <div class="shop-items" id="boost-shop"></div>
+            </section>
+            
+            <!-- Модальное окно для покупки крипты -->
+            <div class="modal" id="payment-modal">
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <h3>Пополнить баланс</h3>
+                    <p>Вам не хватает <span id="payment-amount">0.000000</span> ETH</p>
+                    <button class="payment-btn" id="buy-with-card">
+                        Купить с карты ($0.99 = 0.001 ETH)
+                    </button>
+                    <button class="payment-btn" id="buy-with-crypto">
+                        Отправить ETH (0.001 + gas)
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Премиум секция -->
+            <section class="premium-section">
+                <h3>⭐ Премиум функции</h3>
+                <div class="premium-item">
+                    <h4>Безлимитные улучшения</h4>
+                    <p>Снимите все ограничения на покупку</p>
+                    <button onclick="buyPremiumUpgrade('unlimitedLimits')">
+                        Купить за 0.01 ETH
+                    </button>
+                </div>
+                <div class="premium-item">
+                    <h4>Автомайнинг</h4>
+                    <p>Майнит даже когда приложение закрыто</p>
+                    <button onclick="buyPremiumUpgrade('autoMiner')">
+                        Купить за 0.005 ETH
+                    </button>
+                </div>
+            </section>
             <section class="bonus-section">
                 <h3>🎁 Бонусы</h3>
                 <button class="bonus-btn" id="daily-bonus">Ежедневный бонус</button>
