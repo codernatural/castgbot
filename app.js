@@ -7,7 +7,6 @@ let gameState = {
     crypto: 0.000000,
     miners: 0,
     power: 0,
-    lastClick: Date.now(),
     upgrades: [
         { id: 1, name: "CPU Майнер", price: 0.000010, power: 0.000001, owned: 0, limit: 10 },
         { id: 2, name: "GPU Риг", price: 0.000100, power: 0.000010, owned: 0, limit: 5 },
@@ -21,12 +20,12 @@ let gameState = {
     ],
     premium: {
         unlimitedLimits: false,
-        autoMiner: false,
-        purchased: false
+        autoMiner: false
     },
     referrals: [],
     referralEarnings: 0,
-    lastUpdate: Date.now()
+    lastUpdate: Date.now(),
+    lastDailyBonus: null
 };
 
 // DOM элементы
@@ -42,7 +41,12 @@ const elements = {
     mineBtn: document.getElementById('mine-btn'),
     referralModal: document.getElementById('referral-modal'),
     paymentModal: document.getElementById('payment-modal'),
-    paymentAmount: document.getElementById('payment-amount')
+    paymentAmount: document.getElementById('payment-amount'),
+    referralsCount: document.getElementById('referrals-count'),
+    referralsEarnings: document.getElementById('referrals-earnings'),
+    referralLink: document.getElementById('referral-link'),
+    dailyBonusBtn: document.getElementById('daily-bonus'),
+    referralBtn: document.getElementById('referral-btn')
 };
 
 // Загрузка сохранения
@@ -69,10 +73,11 @@ function loadGame() {
         // Оффлайн доход
         if (gameState.premium.autoMiner) {
             const offlineTime = (Date.now() - gameState.lastUpdate) / 1000;
-            const offlineEarnings = gameState.power * offlineTime * 0.3; // 30% от обычного дохода
+            const offlineEarnings = gameState.power * offlineTime * 0.3;
             gameState.crypto += offlineEarnings;
         }
     }
+    updateUI();
 }
 
 // Сохранение игры
@@ -95,25 +100,17 @@ function updateUI() {
     elements.powerDisplay.textContent = `${formatCrypto(gameState.power)}/сек`;
     elements.userBalance.textContent = `${formatCrypto(gameState.crypto)} ETH`;
     
-    // Обновляем магазин
-    updateShop();
-    updateBoostShop();
-    
-    // Обновляем активные бусты
-    gameState.boosts.forEach(boost => {
-        if (boost.active && boost.endTime <= Date.now()) {
-            boost.active = false;
-        }
-    });
-    
-    // Telegram данные пользователя
+    // Данные пользователя Telegram
     if (tg.initDataUnsafe.user) {
         const user = tg.initDataUnsafe.user;
-        elements.userName.textContent = user.first_name || 'Майнер';
+        elements.userName.textContent = user.first_name || user.username || 'Игрок';
         if (user.photo_url) {
             elements.userAvatar.src = user.photo_url;
         }
     }
+    
+    updateShop();
+    updateBoostShop();
 }
 
 // Обновление магазина улучшений
@@ -140,7 +137,7 @@ function updateShop() {
         elements.shopItems.appendChild(item);
     });
     
-    // Обработчики кнопок покупки
+    // Обновляем обработчики
     document.querySelectorAll('.shop-item .buy-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const id = parseInt(this.getAttribute('data-id'));
@@ -173,8 +170,8 @@ function updateBoostShop() {
         elements.boostShop.appendChild(item);
     });
     
-    // Обработчики кнопок бустов
-    document.querySelectorAll('.boost-section .buy-btn').forEach(btn => {
+    // Обновляем обработчики
+    document.querySelectorAll('.boosts-section .buy-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const id = parseInt(this.getAttribute('data-id'));
             buyBoost(id);
@@ -195,8 +192,6 @@ function buyUpgrade(id) {
         upgrade.owned += 1;
         gameState.miners += 1;
         gameState.power += upgrade.power;
-        
-        // Увеличиваем цену
         upgrade.price *= 1.15;
         
         updateUI();
@@ -239,10 +234,9 @@ function buyBoost(id) {
 // Майнинг по клику
 function setupMining() {
     elements.mineBtn.addEventListener('click', () => {
-        gameState.lastClick = Date.now();
         let mined = 0.000001;
         
-        // Применяем активные бусты
+        // Активный буст
         const activeBoost = gameState.boosts.find(b => b.active && b.endTime > Date.now());
         if (activeBoost) {
             mined *= activeBoost.multiplier;
@@ -252,7 +246,7 @@ function setupMining() {
         updateUI();
         saveGame();
         
-        // Анимация кнопки
+        // Анимация
         elements.mineBtn.style.transform = 'scale(0.95)';
         setTimeout(() => {
             elements.mineBtn.style.transform = 'scale(1)';
@@ -264,9 +258,8 @@ function setupMining() {
 function setupPassiveIncome() {
     setInterval(() => {
         if (gameState.power > 0) {
-            let earned = gameState.power / 10; // 10 раз в секунду
+            let earned = gameState.power / 10;
             
-            // Бусты влияют на пассивный доход
             const activeBoost = gameState.boosts.find(b => b.active && b.endTime > Date.now());
             if (activeBoost) {
                 earned *= activeBoost.multiplier;
@@ -288,19 +281,19 @@ function setupReferralSystem() {
     if (refId && refId !== tg.initDataUnsafe.user?.id?.toString()) {
         if (!gameState.referrals.includes(refId)) {
             gameState.referrals.push(refId);
-            gameState.crypto += 0.000500; // Бонус за реферала
+            gameState.crypto += 0.000500;
             saveGame();
             updateUI();
         }
     }
     
     // Кнопка рефералов
-    document.getElementById('referral-btn').addEventListener('click', () => {
-        document.getElementById('referral-link').value = 
+    elements.referralBtn.addEventListener('click', () => {
+        elements.referralLink.value = 
             `https://t.me/${tg.initDataUnsafe.bot?.username}?startapp=ref${tg.initDataUnsafe.user?.id}`;
-        document.getElementById('referrals-count').textContent = gameState.referrals.length;
-        document.getElementById('referrals-earnings').textContent = formatCrypto(gameState.referralEarnings);
-        elements.referralModal.style.display = 'block';
+        elements.referralsCount.textContent = gameState.referrals.length;
+        elements.referralsEarnings.textContent = formatCrypto(gameState.referralEarnings);
+        elements.referralModal.style.display = 'flex';
     });
     
     // Закрытие модальных окон
@@ -317,11 +310,17 @@ function setupReferralSystem() {
     });
 }
 
+// Копирование реферальной ссылки
+function copyReferralLink() {
+    elements.referralLink.select();
+    document.execCommand('copy');
+    alert('Ссылка скопирована в буфер обмена!');
+}
+
 // Платежная система
 function setupPaymentSystem() {
     document.getElementById('buy-with-card').addEventListener('click', () => {
         alert('Перенаправляем на страницу оплаты...');
-        // В реальном приложении: интеграция с платежным шлюзом
     });
     
     document.getElementById('buy-with-crypto').addEventListener('click', () => {
@@ -332,7 +331,33 @@ function setupPaymentSystem() {
 // Показать модальное окно платежа
 function showPaymentModal(amount) {
     elements.paymentAmount.textContent = formatCrypto(amount);
-    elements.paymentModal.style.display = 'block';
+    elements.paymentModal.style.display = 'flex';
+}
+
+// Ежедневный бонус
+function setupDailyBonus() {
+    elements.dailyBonusBtn.addEventListener('click', () => {
+        const now = new Date();
+        const lastClaim = gameState.lastDailyBonus ? new Date(gameState.lastDailyBonus) : null;
+        
+        if (!lastClaim || now.toDateString() !== lastClaim.toDateString()) {
+            const bonus = 0.000500 + (gameState.power * 0.000100);
+            gameState.crypto += bonus;
+            gameState.lastDailyBonus = now.toISOString();
+            
+            updateUI();
+            saveGame();
+            
+            alert(`🎉 Вы получили ежедневный бонус: ${formatCrypto(bonus)} ETH!`);
+        } else {
+            const nextDay = new Date(lastClaim);
+            nextDay.setDate(nextDay.getDate() + 1);
+            nextDay.setHours(0, 0, 0, 0);
+            
+            const hoursLeft = Math.ceil((nextDay - now) / (1000 * 60 * 60));
+            alert(`⏳ Вы уже получали бонус сегодня. Следующий бонус через ${hoursLeft} часов.`);
+        }
+    });
 }
 
 // Премиум функции
@@ -343,21 +368,26 @@ function buyPremiumUpgrade(type) {
     };
     
     if (confirm(`Купить "${type}" за ${formatCrypto(prices[type])} ETH?`)) {
-        gameState.premium[type] = true;
-        gameState.premium.purchased = true;
-        saveGame();
-        updateUI();
+        if (gameState.crypto >= prices[type]) {
+            gameState.crypto -= prices[type];
+            gameState.premium[type] = true;
+            saveGame();
+            updateUI();
+            alert('Покупка успешна!');
+        } else {
+            showPaymentModal(prices[type] - gameState.crypto);
+        }
     }
 }
 
 // Инициализация игры
 function initGame() {
     loadGame();
-    updateUI();
     setupMining();
     setupPassiveIncome();
     setupReferralSystem();
     setupPaymentSystem();
+    setupDailyBonus();
     
     // Telegram кнопки
     if (tg.platform !== 'unknown') {
