@@ -1,102 +1,132 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crypto Miner</title>
+    <title>Crypto Miner - Майнинг в Telegram</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
-    <div class="app">
-        <header>
-            <div class="user-info">
-                <img id="user-avatar" src="" alt="Avatar">
-                <div>
-                    <h2 id="user-name"></h2>
-                    <p id="user-balance">0 CRYPTO</p>
+    <div class="app-container">
+        <header class="app-header">
+            <div class="user-profile">
+                <img id="user-avatar" src="https://via.placeholder.com/50" alt="Аватар">
+                <div class="user-info">
+                    <h2 id="user-name">Гость</h2>
+                    <p id="user-balance">0.000000 ETH</p>
                 </div>
             </div>
-            <div class="stats">
-                <div class="stat">
-                    <span>⛏️ Майнеры</span>
-                    <span id="miners-count">0</span>
+            <div class="stats-container">
+                <div class="stat-item">
+                    <span class="stat-icon">⛏️</span>
+                    <span class="stat-value" id="miners-count">0</span>
+                    <span class="stat-label">Майнеры</span>
                 </div>
-                <div class="stat">
-                    <span>⚡ Мощность</span>
-                    <span id="power">0/сек</span>
+                <div class="stat-item">
+                    <span class="stat-icon">⚡</span>
+                    <span class="stat-value" id="power">0.000000</span>
+                    <span class="stat-label">ETH/сек</span>
                 </div>
             </div>
         </header>
 
-        <main>
+        <main class="app-main">
             <section class="mining-section">
-                <div class="crypto-display" id="crypto-display">0</div>
+                <div class="crypto-display" id="crypto-display">0.000000</div>
                 <button class="mine-btn" id="mine-btn">Майнить</button>
             </section>
 
-            <section class="shop-section">
-                <h3>🛒 Улучшения</h3>
-                <div class="shop-items" id="shop-items">
-                    <!-- Товары будут добавлены через JS -->
+            <section class="upgrades-section">
+                <h3 class="section-title">🛒 Улучшения</h3>
+                <div class="upgrades-grid" id="shop-items">
+                    <!-- Улучшения будут добавлены через JS -->
                 </div>
             </section>
-            <!-- Добавьте этот раздел после shop-section -->
-            <section class="boost-section">
-                <h3>💎 Платные бусты</h3>
-                <div class="shop-items" id="boost-shop"></div>
-            </section>
-            
-            <!-- Модальное окно для покупки крипты -->
-            <div class="modal" id="payment-modal">
-                <div class="modal-content">
-                    <span class="close">&times;</span>
-                    <h3>Пополнить баланс</h3>
-                    <p>Вам не хватает <span id="payment-amount">0.000000</span> ETH</p>
-                    <button class="payment-btn" id="buy-with-card">
-                        Купить с карты ($0.99 = 0.001 ETH)
-                    </button>
-                    <button class="payment-btn" id="buy-with-crypto">
-                        Отправить ETH (0.001 + gas)
-                    </button>
+
+            <section class="boosts-section">
+                <h3 class="section-title">💎 Бусты</h3>
+                <div class="boosts-grid" id="boost-shop">
+                    <!-- Бусты будут добавлены через JS -->
                 </div>
-            </div>
-            
-            <!-- Премиум секция -->
+            </section>
+
             <section class="premium-section">
-                <h3>⭐ Премиум функции</h3>
-                <div class="premium-item">
+                <h3 class="section-title">⭐ Премиум</h3>
+                <div class="premium-card">
                     <h4>Безлимитные улучшения</h4>
                     <p>Снимите все ограничения на покупку</p>
-                    <button onclick="buyPremiumUpgrade('unlimitedLimits')">
+                    <button class="premium-btn" onclick="buyPremiumUpgrade('unlimitedLimits')">
                         Купить за 0.01 ETH
                     </button>
                 </div>
-                <div class="premium-item">
-                    <h4>Автомайнинг</h4>
+                <div class="premium-card">
+                    <h4>Автоматический майнинг</h4>
                     <p>Майнит даже когда приложение закрыто</p>
-                    <button onclick="buyPremiumUpgrade('autoMiner')">
+                    <button class="premium-btn" onclick="buyPremiumUpgrade('autoMiner')">
                         Купить за 0.005 ETH
                     </button>
                 </div>
             </section>
+
             <section class="bonus-section">
-                <h3>🎁 Бонусы</h3>
-                <button class="bonus-btn" id="daily-bonus">Ежедневный бонус</button>
-                <button class="bonus-btn" id="referral-btn">Реферальная программа</button>
+                <button class="bonus-btn" id="daily-bonus">
+                    <span>🎁</span> Ежедневный бонус
+                </button>
+                <button class="bonus-btn" id="referral-btn">
+                    <span>👥</span> Реферальная программа
+                </button>
             </section>
         </main>
     </div>
 
+    <!-- Модальное окно рефералов -->
     <div class="modal" id="referral-modal">
         <div class="modal-content">
             <span class="close">&times;</span>
             <h3>👥 Реферальная программа</h3>
             <p>Приглашайте друзей и получайте 10% от их дохода!</p>
-            <p>Ваша реферальная ссылка:</p>
-            <input type="text" id="referral-link" readonly>
-            <p>Приглашено: <span id="referrals-count">0</span> друзей</p>
-            <p>Заработано: <span id="referrals-earnings">0</span> CRYPTO</p>
+            
+            <div class="referral-input">
+                <input type="text" id="referral-link" readonly>
+                <button class="copy-btn" onclick="copyReferralLink()">Копировать</button>
+            </div>
+            
+            <div class="referral-stats">
+                <div class="referral-stat">
+                    <span>Приглашено:</span>
+                    <span id="referrals-count">0</span>
+                </div>
+                <div class="referral-stat">
+                    <span>Заработано:</span>
+                    <span id="referrals-earnings">0.000000 ETH</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно платежа -->
+    <div class="modal" id="payment-modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>Пополнить баланс</h3>
+            <p class="payment-text">Вам не хватает <span id="payment-amount">0.000000</span> ETH</p>
+            
+            <div class="payment-options">
+                <button class="payment-option" id="buy-with-card">
+                    <span>💳</span> Купить с карты
+                    <small>$0.99 = 0.001 ETH</small>
+                </button>
+                <button class="payment-option" id="buy-with-crypto">
+                    <span>🪙</span> Отправить ETH
+                    <small>0.001 + комиссия</small>
+                </button>
+            </div>
+            
+            <div class="crypto-wallet">
+                <p>Адрес кошелька:</p>
+                <code>0x742d35Cc6634C0532925a3b844Bc454e4438f44e</code>
+            </div>
         </div>
     </div>
 
