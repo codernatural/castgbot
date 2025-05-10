@@ -181,3 +181,46 @@ header {
     color: white;
     border-radius: 5px;
 }
+/* Добавьте эти стили */
+.boost-section {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #2a2a3a;
+}
+
+.premium-section {
+    margin-top: 30px;
+    background: linear-gradient(135deg, #3a2a4a, #2a2a3a);
+    padding: 15px;
+    border-radius: 10px;
+}
+
+.premium-item {
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #3a3a4a;
+}
+
+.premium-item:last-child {
+    border-bottom: none;
+}
+
+.payment-btn {
+    width: 100%;
+    padding: 12px;
+    margin: 5px 0;
+    border: none;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+#buy-with-card {
+    background: linear-gradient(135deg, #4CAF50, #2E7D32);
+    color: white;
+}
+
+#buy-with-crypto {
+    background: linear-gradient(135deg, #2196F3, #0D47A1);
+    color: white;
+}
