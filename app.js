@@ -3,232 +3,102 @@ const tg = window.Telegram.WebApp;
 tg.expand();
 
 // Состояние игры
+// Новый баланс игры
 let gameState = {
-    crypto: 0,
+    crypto: 0.000000,
     miners: 0,
     power: 0,
     upgrades: [
-        { id: 1, name: "Базовый майнер", price: 10, power: 0.1, owned: 0 },
-        { id: 2, name: "Процессор", price: 50, power: 0.5, owned: 0 },
-        { id: 3, name: "Видеокарта", price: 200, power: 2, owned: 0 },
-        { id: 4, name: "Майнинг-ферма", price: 1000, power: 10, owned: 0 },
-        { id: 5, name: "Крипто-ферма", price: 5000, power: 50, owned: 0 }
+        { id: 1, name: "CPU Майнер", price: 0.000010, power: 0.000001, owned: 0, limit: 10 },
+        { id: 2, name: "GPU Риг", price: 0.000100, power: 0.000010, owned: 0, limit: 5 },
+        { id: 3, name: "ASIC Устройство", price: 0.001000, power: 0.000100, owned: 0, limit: 3 },
+        { id: 4, name: "Майнинг Ферма", price: 0.010000, power: 0.001000, owned: 0, limit: 1 }
     ],
-    lastDailyBonus: null,
-    referrals: [],
-    referralEarnings: 0,
+    // Платные бусты
+    boosts: [
+        { id: 1, name: "x2 На 1 час", price: 0.000500, multiplier: 2, duration: 3600, active: false },
+        { id: 2, name: "x5 На 4 часа", price: 0.002000, multiplier: 5, duration: 14400, active: false },
+        { id: 3, name: "x10 На 12 часов", price: 0.005000, multiplier: 10, duration: 43200, active: false }
+    ],
+    // Премиум улучшения
+    premium: {
+        unlimitedLimits: false, // 0.01 ETH
+        autoMiner: false       // 0.005 ETH
+    },
     lastUpdate: Date.now()
 };
 
-// Загрузка сохранения
-function loadGame() {
-    const saved = localStorage.getItem('cryptoMinerSave');
-    if (saved) {
-        const parsed = JSON.parse(saved);
-        // Проверяем, когда было последнее обновление
-        const offlineTime = (Date.now() - parsed.lastUpdate) / 1000; // в секундах
-        if (offlineTime > 10) { // Если прошло больше 10 секунд
-            // Начисляем оффлайн-доход
-            const offlineEarnings = parsed.power * offlineTime * 0.5; // 50% от обычного дохода
-            parsed.crypto += offlineEarnings;
-        }
-        Object.assign(gameState, parsed);
-    }
-}
-
-// Сохранение игры
-function saveGame() {
-    gameState.lastUpdate = Date.now();
-    localStorage.setItem('cryptoMinerSave', JSON.stringify(gameState));
-}
-
-// Обновление интерфейса
-function updateUI() {
-    document.getElementById('crypto-display').textContent = gameState.crypto.toFixed(2);
-    document.getElementById('miners-count').textContent = gameState.miners;
-    document.getElementById('power').textContent = `${gameState.power.toFixed(1)}/сек`;
-    document.getElementById('user-balance').textContent = `${gameState.crypto.toFixed(2)} CRYPTO`;
+// Модифицированная функция майнинга
+function mineCrypto() {
+    let mined = 0.000001;
     
-    // Обновляем аватар и имя пользователя
-    if (tg.initDataUnsafe.user) {
-        const user = tg.initDataUnsafe.user;
-        document.getElementById('user-name').textContent = user.first_name || 'Игрок';
-        if (user.photo_url) {
-            document.getElementById('user-avatar').src = user.photo_url;
-        }
+    // Применяем активные бусты
+    const activeBoost = gameState.boosts.find(b => b.active);
+    if (activeBoost) {
+        mined *= activeBoost.multiplier;
     }
     
-    // Обновляем магазин
-    updateShop();
-}
-
-// Обновление магазина
-function updateShop() {
-    const shopContainer = document.getElementById('shop-items');
-    shopContainer.innerHTML = '';
-    
-    gameState.upgrades.forEach(upgrade => {
-        const item = document.createElement('div');
-        item.className = 'shop-item';
-        item.innerHTML = `
-            <div class="shop-item-info">
-                <div class="shop-item-name">${upgrade.name}</div>
-                <div class="shop-item-desc">+${upgrade.power.toFixed(1)} мощности</div>
-            </div>
-            <div class="shop-item-price">${upgrade.price.toFixed(0)} CRYPTO</div>
-            <button class="buy-btn" data-id="${upgrade.id}">Купить (${upgrade.owned})</button>
-        `;
-        shopContainer.appendChild(item);
-    });
-    
-    // Добавляем обработчики кнопок покупки
-    document.querySelectorAll('.buy-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const id = parseInt(this.getAttribute('data-id'));
-            buyUpgrade(id);
-        });
-    });
-}
-
-// Покупка улучшения
-function buyUpgrade(id) {
-    const upgrade = gameState.upgrades.find(u => u.id === id);
-    if (!upgrade) return;
-    
-    if (gameState.crypto >= upgrade.price) {
-        gameState.crypto -= upgrade.price;
-        upgrade.owned += 1;
-        gameState.miners += 1;
-        gameState.power += upgrade.power;
-        
-        // Увеличиваем цену для следующей покупки
-        upgrade.price = Math.floor(upgrade.price * 1.15);
-        
-        updateUI();
-        saveGame();
-        
-        // Визуальная обратная связь
-        const btn = document.querySelector(`.buy-btn[data-id="${id}"]`);
-        btn.textContent = `Купить (${upgrade.owned})`;
-        btn.style.transform = 'scale(1.1)';
-        setTimeout(() => {
-            btn.style.transform = 'scale(1)';
-        }, 200);
-    } else {
-        alert('Недостаточно CRYPTO!');
-    }
-}
-
-// Майнинг по клику
-function setupMining() {
-    const mineBtn = document.getElementById('mine-btn');
-    mineBtn.addEventListener('click', () => {
-        gameState.crypto += 1 + (gameState.power * 0.1); // Базовый доход + 10% от мощности
-        updateUI();
-        saveGame();
-        
-        // Анимация кнопки
-        mineBtn.style.transform = 'scale(0.95)';
-        setTimeout(() => {
-            mineBtn.style.transform = 'scale(1)';
-        }, 100);
-    });
-}
-
-// Ежедневный бонус
-function setupDailyBonus() {
-    const dailyBtn = document.getElementById('daily-bonus');
-    dailyBtn.addEventListener('click', () => {
-        const now = new Date();
-        const lastClaim = gameState.lastDailyBonus ? new Date(gameState.lastDailyBonus) : null;
-        
-        if (!lastClaim || now.getDate() !== lastClaim.getDate()) {
-            const bonus = 100 + (gameState.power * 5); // Базовый бонус + 5x мощность
-            gameState.crypto += bonus;
-            gameState.lastDailyBonus = now.toISOString();
-            
-            updateUI();
-            saveGame();
-            
-            alert(`🎉 Вы получили ежедневный бонус: ${bonus.toFixed(2)} CRYPTO!`);
-        } else {
-            const nextDay = new Date(lastClaim);
-            nextDay.setDate(nextDay.getDate() + 1);
-            nextDay.setHours(0, 0, 0, 0);
-            
-            const hoursLeft = Math.floor((nextDay - now) / (1000 * 60 * 60));
-            alert(`⏳ Вы уже получали бонус сегодня. Следующий бонус через ${hoursLeft} часов.`);
-        }
-    });
-}
-
-// Реферальная система
-function setupReferralSystem() {
-    const referralBtn = document.getElementById('referral-btn');
-    const modal = document.getElementById('referral-modal');
-    const closeBtn = document.querySelector('.close');
-    
-    // Проверяем реферальный параметр в URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const refParam = urlParams.get('ref');
-    
-    if (refParam && refParam !== tg.initDataUnsafe.user?.id?.toString()) {
-        // Если есть реферальная ссылка и это не сам пользователь
-        if (!gameState.referrals.includes(refParam)) {
-            gameState.referrals.push(refParam);
-            gameState.crypto += 50; // Бонус за регистрацию по реферальной ссылке
-            saveGame();
-            updateUI();
-        }
-    }
-    
-    // Показываем модальное окно
-    referralBtn.addEventListener('click', () => {
-        document.getElementById('referral-link').value = 
-            `https://t.me/${tg.initDataUnsafe.bot?.username}?startapp=ref${tg.initDataUnsafe.user?.id}`;
-        document.getElementById('referrals-count').textContent = gameState.referrals.length;
-        document.getElementById('referrals-earnings').textContent = gameState.referralEarnings.toFixed(2);
-        modal.style.display = 'block';
-    });
-    
-    // Закрываем модальное окно
-    closeBtn.addEventListener('click', () => {
-        modal.style.display = 'none';
-    });
-    
-    window.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            modal.style.display = 'none';
-        }
-    });
-}
-
-// Пассивный доход
-function setupPassiveIncome() {
-    setInterval(() => {
-        gameState.crypto += gameState.power / 10; // 10 раз в секунду для плавности
-        updateUI();
-        saveGame();
-    }, 100);
-}
-
-// Инициализация игры
-function initGame() {
-    loadGame();
+    gameState.crypto += mined + (gameState.power / 1000000);
     updateUI();
-    setupMining();
-    setupDailyBonus();
-    setupReferralSystem();
-    setupPassiveIncome();
+}
+
+// Новый магазин платных бустов
+function createBoostShop() {
+    const boostShop = document.getElementById('boost-shop');
+    boostShop.innerHTML = '';
     
-    // Показываем кнопку "Поделиться" в Telegram
-    if (tg.platform !== 'unknown') {
-        tg.MainButton.setText('Пригласить друзей').show();
-        tg.MainButton.onClick(() => {
-            tg.showAlert('Поделитесь ссылкой и получайте 10% от дохода друзей!');
-        });
+    gameState.boosts.forEach(boost => {
+        const boostItem = document.createElement('div');
+        boostItem.className = 'shop-item';
+        boostItem.innerHTML = `
+            <h4>${boost.name}</h4>
+            <p>+${boost.multiplier}x к доходу</p>
+            <p>Цена: ${boost.price.toFixed(6)} ETH</p>
+            <button class="buy-btn" data-id="${boost.id}">
+                ${boost.active ? 'АКТИВЕН' : 'КУПИТЬ'}
+            </button>
+        `;
+        boostShop.appendChild(boostItem);
+    });
+}
+
+// Покупка буста
+function buyBoost(id) {
+    const boost = gameState.boosts.find(b => b.id === id);
+    if (!boost || boost.active) return;
+    
+    if (gameState.crypto >= boost.price) {
+        gameState.crypto -= boost.price;
+        boost.active = true;
+        
+        setTimeout(() => {
+            boost.active = false;
+            updateUI();
+        }, boost.duration * 1000);
+        
+        updateUI();
+        saveGame();
+    } else {
+        showPaymentModal(boost.price);
     }
 }
 
-// Запускаем игру при загрузке страницы
-document.addEventListener('DOMContentLoaded', initGame);
+// Модальное окно для покупки крипты за реальные деньги
+function showPaymentModal(amount) {
+    document.getElementById('payment-amount').textContent = amount.toFixed(6);
+    document.getElementById('payment-modal').style.display = 'block';
+}
+
+// Премиум функции
+function buyPremiumUpgrade(type) {
+    const prices = {
+        'unlimitedLimits': 0.010000,
+        'autoMiner': 0.005000
+    };
+    
+    if (confirm(`Купить "${type}" за ${prices[type].toFixed(6)} ETH?`)) {
+        gameState.premium[type] = true;
+        saveGame();
+        updateUI();
+    }
+}
